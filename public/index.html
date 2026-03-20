@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>文体変換ツール</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #07091a;
+      --surface: #0f1535;
+      --surface2: #162050;
+      --border: rgba(77, 140, 245, 0.2);
+      --accent: #4d8cf5;
+      --accent-light: #60a5fa;
+      --accent-glow: rgba(77, 140, 245, 0.35);
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --error: #f87171;
+      --success: #34d399;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(77,140,245,0.15) 0%, transparent 60%);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      background: linear-gradient(135deg, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      margin-top: 0.5rem;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      letter-spacing: 0.03em;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      padding: 2rem;
+      box-shadow: 0 0 40px rgba(77,140,245,0.08), 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    label.section-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--accent-light);
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      padding: 0.85rem 1rem;
+      resize: vertical;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+
+    textarea::placeholder { color: var(--text-dim); }
+    textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+    .style-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.6rem;
+    }
+
+    .style-btn {
+      flex: 1 1 calc(20% - 0.6rem);
+      min-width: 100px;
+      padding: 0.55rem 0.8rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: center;
+    }
+
+    .style-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      background: rgba(77,140,245,0.1);
+    }
+
+    .style-btn.active {
+      background: linear-gradient(135deg, #1d3a8a, #2d4fa0);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    .style-btn .emoji { font-size: 1.1em; margin-right: 0.3em; }
+
+    .convert-btn {
+      display: block;
+      width: 100%;
+      margin-top: 1.4rem;
+      padding: 0.85rem;
+      background: linear-gradient(135deg, #2563eb, #4d8cf5);
+      border: none;
+      border-radius: 0.6rem;
+      color: #fff;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(77,140,245,0.4);
+    }
+
+    .convert-btn:hover:not(:disabled) {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 28px rgba(77,140,245,0.55);
+    }
+
+    .convert-btn:active:not(:disabled) { transform: translateY(0); }
+    .convert-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2rem 0;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.6rem;
+    }
+
+    .copy-btn {
+      padding: 0.3rem 0.7rem;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 0.4rem;
+      color: var(--text-dim);
+      font-family: inherit;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent-light); }
+    .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+    .result-box {
+      min-height: 120px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      padding: 0.85rem 1rem;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+
+    .result-box.placeholder { color: var(--text-dim); font-style: italic; }
+
+    .spinner {
+      display: none;
+      margin: 0 auto;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      display: none;
+      color: var(--error);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      padding: 0.6rem 0.9rem;
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.25);
+      border-radius: 0.4rem;
+    }
+
+    footer {
+      margin-top: 2rem;
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      text-align: center;
+      opacity: 0.6;
+    }
+
+    @media (max-width: 500px) {
+      .style-btn { flex: 1 1 calc(50% - 0.6rem); }
+      .card { padding: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>文体変換ツール</h1>
+  <p>テキストを5つのスタイルに瞬時に変換</p>
+</header>
+
+<div class="card">
+  <label class="section-label" for="input-text">入力テキスト</label>
+  <textarea id="input-text" placeholder="変換したいテキストをここに入力してください…"></textarea>
+
+  <div style="margin-top:1.5rem;">
+    <label class="section-label">スタイルを選択</label>
+    <div class="style-grid">
+      <button class="style-btn" data-style="casual"><span class="emoji">😄</span>カジュアル</button>
+      <button class="style-btn" data-style="polite"><span class="emoji">🎩</span>丁寧</button>
+      <button class="style-btn" data-style="sns"><span class="emoji">📱</span>SNS向け</button>
+      <button class="style-btn" data-style="cool"><span class="emoji">❄️</span>クール</button>
+      <button class="style-btn" data-style="heat"><span class="emoji">🔥</span>熱量高め</button>
+    </div>
+  </div>
+
+  <div id="error-msg" class="error-msg"></div>
+
+  <button class="convert-btn" id="convert-btn" disabled>スタイルを選んでください</button>
+
+  <div class="divider"></div>
+
+  <div class="result-header">
+    <label class="section-label" style="margin:0;">変換結果</label>
+    <button class="copy-btn" id="copy-btn">コピー</button>
+  </div>
+
+  <div class="spinner" id="spinner"></div>
+  <div class="result-box placeholder" id="result-box">ここに変換結果が表示されます</div>
+</div>
+
+<footer>Powered by Groq × Llama 3.1</footer>
+
+<script>
+  const inputEl = document.getElementById('input-text');
+  const convertBtn = document.getElementById('convert-btn');
+  const resultBox = document.getElementById('result-box');
+  const spinner = document.getElementById('spinner');
+  const errorMsg = document.getElementById('error-msg');
+  const copyBtn = document.getElementById('copy-btn');
+  const styleBtns = document.querySelectorAll('.style-btn');
+
+  let selectedStyle = null;
+
+  styleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      styleBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedStyle = btn.dataset.style;
+      convertBtn.disabled = false;
+      convertBtn.textContent = '変換する';
+    });
+  });
+
+  convertBtn.addEventListener('click', async () => {
+    const text = inputEl.value.trim();
+    if (!text) { showError('テキストを入力してください'); return; }
+    if (!selectedStyle) { showError('スタイルを選択してください'); return; }
+
+    hideError();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/convert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, style: selectedStyle }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || '変換に失敗しました');
+        return;
+      }
+
+      resultBox.textContent = data.result;
+      resultBox.classList.remove('placeholder');
+    } catch (e) {
+      showError('ネットワークエラーが発生しました');
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  copyBtn.addEventListener('click', () => {
+    const text = resultBox.textContent;
+    if (!text || resultBox.classList.contains('placeholder')) return;
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.textContent = 'コピー済み！';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.textContent = 'コピー';
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    });
+  });
+
+  function setLoading(on) {
+    spinner.style.display = on ? 'block' : 'none';
+    resultBox.style.display = on ? 'none' : 'block';
+    convertBtn.disabled = on;
+    convertBtn.textContent = on ? '変換中…' : '変換する';
+  }
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.style.display = 'block';
+  }
+
+  function hideError() {
+    errorMsg.style.display = 'none';
+  }
+</script>
+</body>
+</html>
